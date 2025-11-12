@@ -15,4 +15,34 @@ class StandardTests {
 
     }
 
+    @BeforeEach
+    void init() {
+
+    }
+
+    @Test
+    void succeedingTest() {
+
+    }
+
+    @Test
+    void failingTest() {
+        fail("a failing test");
+    }
+
+    @Test
+    @Disabled("for demonstration purposes")
+    void skippedTest() {
+        System.out.println("skipped");
+    }
+
+    @AfterEach
+    void tearDown() {
+
+    }
+
+    @AfterAll
+    static void tearDownAll() {
+
+    }
 }
