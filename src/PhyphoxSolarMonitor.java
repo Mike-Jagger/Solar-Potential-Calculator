@@ -1,0 +1,226 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * PhyphoxSolarMonitor
+ * * A tool to bridge smartphone sensor data with solar energy estimation.
+ * * FEATURES:
+ * 1. Connects to Phyphox REST API to pull live Illuminance (Lux).
+ * 2. Implements calibration techniques (Reference Comparison) discussed in arXiv:2308.16158.
+ * 3. Calculates Direct Normal Irradiance (DNI).
+ * 4. Simulates Solar Panel Output based on user config.
+ * 5. Matches power output to a database of household appliances.
+ */
+public class PhyphoxSolarMonitor {
+
+    // Configuration
+    private static final int REFRESH_RATE_MS = 1000; // 1 second polling
+    private static final DecimalFormat df = new DecimalFormat("0.00");
+
+    // Default calibration: 1 Lux ~= 0.0079 W/m^2 (Standard sunlight luminous efficacy approximation)
+    // The paper suggests determining this specifically for the device via calibration.
+    private static double calibrationFactor = 0.0079;
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("==================================================");
+        System.out.println("   Phyphox Solar Irradiance & Power Monitor");
+        System.out.println("==================================================");
+
+        // 1. Setup Connection
+        System.out.println("\n[Step 1] Connection Setup");
+        System.out.println("Open Phyphox -> Light Experiment -> Enable Remote Access.");
+        System.out.print("Enter the URL shown on phone (e.g., http://192.168.1.5:8080): ");
+        String baseUrl = scanner.nextLine().trim();
+
+        // Remove trailing slash if present
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+
+        // Test connection
+        baseUrl = "http://10.83.84.28:8080/";
+        String testUrl = baseUrl + "/get?illum";
+        Double testVal = fetchIlluminance(testUrl);
+        if (testVal == null) {
+            System.err.println("Error: Could not connect to Phyphox at " + baseUrl);
+            System.err.println("Ensure phone and computer are on the same Wi-Fi.");
+            return;
+        }
+        System.out.println("Successfully connected! Current Lux: " + testVal);
+
+        // 2. Setup Solar Panel Config
+        System.out.println("\n[Step 2] Solar Panel Configuration");
+        System.out.print("Enter Panel Efficiency (e.g., 18 for 18%): ");
+        double efficiency = Double.parseDouble(scanner.nextLine()) / 100.0;
+
+        System.out.print("Enter Panel Area in square meters (e.g., 1.6): ");
+        double area = Double.parseDouble(scanner.nextLine());
+
+        // 3. Calibration Phase (arXiv:2308.16158 Technique)
+        System.out.println("\n[Step 3] Sensor Calibration");
+        System.out.println("The paper suggests calibrating your specific phone sensor against a reference.");
+        System.out.println("1. Use Standard Coefficient (Simple, approx 0.0079 W/m^2 per Lux)");
+        System.out.println("2. Perform Reference Calibration (Requires current known DNI from weather station)");
+        System.out.print("Choose (1/2): ");
+        String choice = scanner.nextLine();
+
+        if (choice.equals("2")) {
+            System.out.print("Enter current known DNI (W/m^2) from local weather/pyranometer: ");
+            double referenceDni = Double.parseDouble(scanner.nextLine());
+
+            System.out.println("Measuring current sensor value for calibration...");
+            Double currentLux = fetchIlluminance(testUrl);
+            if (currentLux != null && currentLux > 0) {
+                calibrationFactor = referenceDni / currentLux;
+                System.out.println("Calibration complete. Factor k = " + String.format("%.6f", calibrationFactor));
+            } else {
+                System.out.println("Error reading sensor or 0 light detected. Reverting to standard.");
+            }
+        }
+
+        // 4. Main Monitoring Loop
+        System.out.println("\n[Step 4] Starting Live Monitor...");
+        System.out.println("Point your phone directly at the light source/sun.");
+        System.out.println("Press Ctrl+C to stop.");
+        System.out.println("--------------------------------------------------");
+
+        List<Appliance> appliances = getApplianceList();
+
+        while (true) {
+            try {
+                Double lux = fetchIlluminance(testUrl);
+
+                if (lux != null) {
+                    // Calculations
+                    double dni = lux * calibrationFactor;
+                    double powerOutput = dni * area * efficiency;
+
+                    // Clear console (ANSI escape code, might not work in all IDEs, works in terminal)
+                    System.out.print("\033[H\033[2J");
+                    System.out.flush();
+
+                    System.out.println("================ LIVE DATA ================");
+                    System.out.println("Illuminance (Sensor) : " + df.format(lux) + " Lux");
+                    System.out.println("Est. Irradiance (DNI): " + df.format(dni) + " W/m^2");
+                    System.out.println("-------------------------------------------");
+                    System.out.println("SOLAR PANEL OUTPUT   : " + df.format(powerOutput) + " Watts");
+                    System.out.println("-------------------------------------------");
+                    System.out.println("WHAT CAN YOU POWER?");
+
+                    boolean any = false;
+                    for (Appliance app : appliances) {
+                        if (powerOutput >= app.watts) {
+                            int quantity = (int) (powerOutput / app.watts);
+                            System.out.println(" [✓] " + app.name + " (" + app.watts + "W) x " + quantity);
+                            any = true;
+                        } else {
+                            System.out.println(" [ ] " + app.name + " (" + app.watts + "W) - Insufficient Power");
+                        }
+                    }
+
+                    if (!any) System.out.println(" (Insufficient power for defined appliances)");
+                    System.out.println("===========================================");
+                }
+
+                Thread.sleep(REFRESH_RATE_MS);
+
+            } catch (Exception e) {
+                System.out.println("Connection lost or interrupted: " + e.getMessage());
+                break;
+            }
+        }
+    }
+
+    /**
+     * Connects to Phyphox and extracts the latest illuminance value.
+     * Parses the JSON response manually to avoid external dependencies.
+     * Expected format: {"buffer":{"illuminance":{"buffer":[values...]}}}
+     */
+    private static Double fetchIlluminance(String urlString) {
+        try {
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("Response code: "+responseCode);
+            if (responseCode != 200) return null;
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+            System.out.println("Response: "+response);
+
+            // Parse JSON string to find the value inside "buffer": [ ... ]
+            // Phyphox usually returns a list. We want the last value.
+            // Regex looks for numbers inside brackets
+            String json = response.toString();
+            System.out.println("Json payload: " + json);
+
+            // Pattern to find the "buffer" array content
+            // This regex finds the "illuminance" object and captures the array content
+            // It is a simple heuristic parser for the Phyphox format
+            // Pattern p = Pattern.compile("\"illum\"\\s*:\\s*\\{\\s*\"buffer\"\\s*:\\s*\\[([0-9.,\\s]+)\\]");
+            Pattern p = Pattern.compile("\"illum\"\\s*:\\s*\\{[^}]*\"buffer\"\\s*:\\s*\\[([0-9E+\\-.,\\s]+)\\]");
+
+            Matcher m = p.matcher(json);
+
+            System.out.println(json);
+
+            if (m.find()) {
+                String arrayContent = m.group(1);
+                System.out.println("Buffer arrary: " + arrayContent);
+                // Split by comma to get values
+                String[] values = arrayContent.split(",");
+                if (values.length > 0) {
+                    // Get the last value in the buffer (most recent)
+                    return Double.parseDouble(values[values.length - 1].trim());
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace(); // Uncomment for debug
+        }
+        return null;
+    }
+
+    private static List<Appliance> getApplianceList() {
+        List<Appliance> apps = new ArrayList<>();
+        apps.add(new Appliance("LED Light Bulb", 9));
+        apps.add(new Appliance("Phone Charger", 15));
+        apps.add(new Appliance("Wi-Fi Router", 20));
+        apps.add(new Appliance("Laptop Charging", 65));
+        apps.add(new Appliance("Ceiling Fan", 75));
+        apps.add(new Appliance("LED TV (42 inch)", 100));
+        apps.add(new Appliance("Desktop PC", 250));
+        apps.add(new Appliance("Coffee Maker", 800));
+        apps.add(new Appliance("Microwave", 1000));
+        return apps;
+    }
+
+    static class Appliance {
+        String name;
+        double watts;
+
+        public Appliance(String name, double watts) {
+            this.name = name;
+            this.watts = watts;
+        }
+    }
+}
