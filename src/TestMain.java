@@ -1,5 +1,4 @@
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -17,6 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumingThat;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -180,4 +182,33 @@ class AssertionsDemo {
         return "Assertion messages can be lazily evaluated -- "
                 + "to avoid constructing complex messages unnecessarily." + (a < b);
     }
+}
+
+class AssumptionsDemo {
+    // private final Calculator calculator = new Calculator;
+
+    @Test
+    void testOnlyOnCiServer() {
+        assumeTrue("CI".equals(System.getenv("ENV")));
+        // Continue test in ci server
+    }
+
+    @Test
+    void testOnlyOnDevelopmentServer(){
+        assumeTrue("DEV".equals(System.getenv("ENV")))
+        // Continue test in dev server
+    }
+
+    @Test
+    void testInAllEnvironments() {
+        assumingThat("CI".equals(System.getenv("ENV")),
+                () -> {
+                    // Perform these tests only on the CI server
+                    assertEquals(2, 2+2);
+                });
+
+        // perform these tests in all environments
+        assertEquals(42, 40 + 2);
+    }
+
 }
