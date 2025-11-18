@@ -195,7 +195,7 @@ class AssumptionsDemo {
 
     @Test
     void testOnlyOnDevelopmentServer(){
-        assumeTrue("DEV".equals(System.getenv("ENV")))
+        assumeTrue("DEV".equals(System.getenv("ENV")));
         // Continue test in dev server
     }
 
