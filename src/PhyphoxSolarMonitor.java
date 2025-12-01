@@ -47,7 +47,7 @@ public class PhyphoxSolarMonitor {
         }
 
         // Test connection
-        baseUrl = "http://10.83.84.28:8080/";
+        baseUrl = "http://10.126.104.131:8080/";
         String testUrl = baseUrl + "/get?illum";
         Double testVal = fetchIlluminance(testUrl);
         if (testVal == null) {
