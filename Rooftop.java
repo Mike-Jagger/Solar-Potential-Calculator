@@ -19,7 +19,7 @@ public double getOrientationFactor() {
   }
 
   public double getEffectiveArea(){
-    return area* (1-shadingFactor);
+    return area* (1-shadingFactor) * (orientation);
   }
 
   public String getOrientation(){
