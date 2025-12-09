@@ -7,6 +7,8 @@ public abstract class SolarPanel {
   this.area = area; 
  }
 
+ public double getArea() { return area; }
+
  public abstract double computeRawOutput(double dni);
 
  public double getEfficiency(){

@@ -15,8 +15,19 @@ public class SolarCalculator {
 
     public double calculatePower(double lux) {
         double dni = lux * luxFactor;
-        double rawOutput = panel.computeRawOutput(dni);
-        return rawOutput * rooftop.getEffectiveArea();
+
+        // FIX: Use ... * rooftop.getEffectiveArea() if the effective area of the passed rooftop doesn't match the area
+        // of the panel.
+
+        if (Double.compare(rooftop.getEffectiveArea(), panel.getArea()) != 0) {
+            return (panel.computeRawOutput(dni) / panel.getArea()) * rooftop.getEffectiveArea();
+        }
+
+        // FIX: Remove * rooftop.getEffectiveArea() if the effective area of the passed rooftop matches the area
+        // of the panel.
+        // The panel is already initialized with the effective area in Main.
+        // Multiplying here again (in case the values match) would result in (Area * Area).
+        return panel.computeRawOutput(dni);
     }
 
     public void matchAppliances(double power) {
