@@ -7,7 +7,7 @@ public class PhyphoxSolarMonitor {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
-        // 1. Connect to Phyphox with Retry Logic
+        // Connect to Phyphox with Retry Logic
         System.out.print("Enter Phyphox base URL (e.g., http://192.168.1.5:8080): ");
         String baseUrl = scanner.nextLine().trim();
         PhyphoxClient client = new PhyphoxClient(baseUrl);
@@ -18,7 +18,7 @@ public class PhyphoxSolarMonitor {
             return;
         }
 
-        // 2. Rooftop setup
+        // Rooftop setup
         System.out.println("\n--- Rooftop Configuration ---");
         double area = getValidDouble(scanner, "Enter rooftop area (m^2): ");
         double shading = getValidDouble(scanner, "Enter shading factor (0.0 to 1.0): ");
@@ -26,7 +26,7 @@ public class PhyphoxSolarMonitor {
         String orientation = scanner.nextLine();
         Rooftop rooftop = new Rooftop(area, shading, orientation);
 
-        // 3. Panel selection
+        // Panel selection
         System.out.println("\n--- Panel Configuration ---");
         System.out.println("Choose panel type: 1=Polycrystalline, 2=Monocrystalline");
         String choice = scanner.nextLine();
@@ -37,7 +37,7 @@ public class PhyphoxSolarMonitor {
             panel = new MonocrystallinePanel(0.20, rooftop.getEffectiveArea(), 0.02);
         }
 
-        // 4. Calibration
+        // Calibration
         System.out.println("\n--- Calibration ---");
         Calibration calibration = new Calibration();
         System.out.println("Method: 1=Standard (Default), 2=Reference DNI");
@@ -53,11 +53,11 @@ public class PhyphoxSolarMonitor {
             }
         }
 
-        // 5. Setup Calculator
+        // Setup Calculator
         List<Appliance> appliances = ApplianceDatabase.getAppliances();
         SolarCalculator calculator = new SolarCalculator(rooftop, panel, appliances, calibration.getFactor());
 
-        // 6. Monitoring loop with Reconnection Logic
+        // Monitoring loop with Reconnection Logic
         System.out.println("\n--- Starting Live Monitor (Ctrl+C to stop) ---");
         int consecutiveErrors = 0;
 
