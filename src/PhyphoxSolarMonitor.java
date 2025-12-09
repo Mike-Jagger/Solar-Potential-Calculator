@@ -13,7 +13,8 @@ public class PhyphoxSolarMonitor {
         PhyphoxClient client = new PhyphoxClient(baseUrl);
 
         if (!establishInitialConnection(client)) {
-            System.err.println("Fatal Error: Could not establish connection after multiple attempts.");
+            System.err.println("Fatal Error: Could not establish connection after multiple attempts. " +
+                    "\n Please try running the app again and provide the right Phyphox base URL.");
             return;
         }
 
