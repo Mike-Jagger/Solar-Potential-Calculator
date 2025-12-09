@@ -4,11 +4,11 @@ public class Rooftop {
   private String orientation; 
   
 public double getOrientationFactor() {
-    switch (orientation) {
-        case "south": return 1.0;  
-        case "east":  return 0.8;   
-        case "west":  return 0.8;   
-        case "north": return 0.6;   
+    switch (orientation.toUpperCase()) {
+        case "S": return 1.0;
+        case "E":  return 0.8;
+        case "W":  return 0.8;
+        case "N": return 0.6;
         default:      return 0.9;   
     }
 }

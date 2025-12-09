@@ -93,4 +93,5 @@ contact the dev team:
     - "Power Output is 0":
         1. Ensure you aren't covering the sensor (located on your phone's selfie camera).
         2. Check if Shading Factor was set to 1.0 (100% shade) and reduce to a reasonable amount if that's the case.
-        3. Ensure it is daytime (or that there is proper lighting in the room for initial testing)!
+        3. Check if Rooftop Area and Reference DNI was set to 0 as this will result in a 0 power output.
+        4. Ensure it is daytime (or that there is proper lighting in the room for initial testing)!

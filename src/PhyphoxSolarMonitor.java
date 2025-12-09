@@ -1,5 +1,6 @@
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class PhyphoxSolarMonitor {
     private static final int MAX_RETRIES = 5;
@@ -20,16 +21,20 @@ public class PhyphoxSolarMonitor {
 
         // Rooftop setup
         System.out.println("\n--- Rooftop Configuration ---");
-        double area = getValidDouble(scanner, "Enter rooftop area (m^2): ");
-        double shading = getValidDouble(scanner, "Enter shading factor (0.0 to 1.0): ");
-        System.out.print("Enter orientation (south, north, east, west): ");
-        String orientation = scanner.nextLine();
+        double area = getValidPositiveDouble(scanner, "Enter rooftop area (m^2): ");
+        double shading = getValidDouble(scanner, "Enter shading factor (0.0 to 1.0): ", 0, 1);
+        String orientation = getValidOption(
+                scanner,
+                "Enter orientation (south [S], north [N], east [E], west [W]): ",
+                List.of(new String[]{"S", "N", "E", "W"}));
         Rooftop rooftop = new Rooftop(area, shading, orientation);
 
         // Panel selection
         System.out.println("\n--- Panel Configuration ---");
-        System.out.println("Choose panel type: 1=Polycrystalline, 2=Monocrystalline");
-        String choice = scanner.nextLine();
+        String choice = getValidOption(
+                scanner,
+                "Choose panel type: 1=Polycrystalline, 2=Monocrystalline",
+                List.of(new String[]{"1", "2"}));
         SolarPanel panel;
         if (choice.equals("1")) {
             panel = new PolycrystallinePanel(0.18, rooftop.getEffectiveArea(), 0.05);
@@ -40,11 +45,13 @@ public class PhyphoxSolarMonitor {
         // Calibration
         System.out.println("\n--- Calibration ---");
         Calibration calibration = new Calibration();
-        System.out.println("Method: 1=Standard (Default), 2=Reference DNI");
-        String calChoice = scanner.nextLine();
+        String calChoice = getValidOption(
+                scanner,
+                "Method: 1=Standard (Default), 2=Reference DNI",
+                List.of(new String[]{"1", "2"}));
 
         if (calChoice.equals("2")) {
-            double referenceDni = getValidDouble(scanner, "Enter reference DNI (W/m^2): ");
+            double referenceDni = getValidPositiveDouble(scanner, "Enter reference DNI (W/m^2): ");
             Double lux = client.fetchIlluminance();
             if (lux != null) {
                 calibration.calibrate(referenceDni, lux);
@@ -100,14 +107,52 @@ public class PhyphoxSolarMonitor {
         }
     }
 
-    // Helper for robust input
-    private static double getValidDouble(Scanner scanner, String prompt) {
+    //
+    private static double getValidPositiveDouble(Scanner scanner, String prompt) {
         while (true) {
             System.out.print(prompt);
             try {
-                return Double.parseDouble(scanner.nextLine());
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid number. Please try again.");
+                double val = Double.parseDouble(scanner.nextLine());
+
+                if (Double.compare(val, 0) < 0) {
+                    throw new NumberFormatException("Should be positive");
+                }
+
+                return val;
+            } catch (Exception e) {
+                System.out.println("Invalid number (must be >= 0). Please try again.");
+            }
+        }
+    }
+
+    // Helper to check if valid double is within min and max inclusive
+    private static double getValidDouble(Scanner scanner, String prompt, double min, double max) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                double val = Double.parseDouble(scanner.nextLine());
+                if (Double.compare(val, min) < 0 || Double.compare(val, max) > 0) {
+                    throw new NumberFormatException("Not within range");
+                }
+                return val;
+            } catch (Exception e) {
+                System.out.printf("Invalid number (must be valid and between %.4f and %.4f inclusive). Please try again.\n", min, max);
+            }
+        }
+    }
+
+    // Helper to check if option given is within range of options (no case checks) and returns option in lowercase
+    private static String getValidOption(Scanner scanner, String prompt, List<String> validOptions) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                String val = scanner.nextLine().trim().toLowerCase();
+                if (validOptions.stream().map(String::toLowerCase).toList().contains(val)) {
+                   return val;
+                }
+                throw new ArrayStoreException("Not within range of valid options");
+            } catch (Exception e) {
+                System.out.println("Invalid option. Please try again.");
             }
         }
     }
