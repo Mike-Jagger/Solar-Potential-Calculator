@@ -1,5 +1,7 @@
+import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class PhyphoxSolarMonitor {
@@ -107,20 +109,20 @@ public class PhyphoxSolarMonitor {
         }
     }
 
-    //
+    // Helper to check if input is a valid positive double
     private static double getValidPositiveDouble(Scanner scanner, String prompt) {
         while (true) {
             System.out.print(prompt);
+            String input = scanner.nextLine().trim();
             try {
-                double val = Double.parseDouble(scanner.nextLine());
-
-                if (Double.compare(val, 0) < 0) {
-                    throw new NumberFormatException("Should be positive");
+                double val = Double.parseDouble(input);
+                if (val < 0) {
+                    System.out.println("Value must be positive (>= 0). Please try again.");
+                    continue;
                 }
-
                 return val;
-            } catch (Exception e) {
-                System.out.println("Invalid number (must be >= 0). Please try again.");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number format. Please enter a valid positive number.");
             }
         }
     }
@@ -129,31 +131,36 @@ public class PhyphoxSolarMonitor {
     private static double getValidDouble(Scanner scanner, String prompt, double min, double max) {
         while (true) {
             System.out.print(prompt);
+            String input = scanner.nextLine().trim();
             try {
-                double val = Double.parseDouble(scanner.nextLine());
-                if (Double.compare(val, min) < 0 || Double.compare(val, max) > 0) {
-                    throw new NumberFormatException("Not within range");
+                double val = Double.parseDouble(input);
+                if (val < min || val > max) {
+                    System.out.printf("Value must be between %.4f and %.4f (inclusive). Please try again.%n", min, max);
+                    continue;
                 }
                 return val;
-            } catch (Exception e) {
-                System.out.printf("Invalid number (must be valid and between %.4f and %.4f inclusive). Please try again.\n", min, max);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number format. Please enter a valid number.");
             }
         }
     }
 
-    // Helper to check if option given is within range of options (no case checks) and returns option in lowercase
+    // Helper to check if option given is within range of options (case-insensitive)
+    // and returns the valid option in lowercase
     private static String getValidOption(Scanner scanner, String prompt, List<String> validOptions) {
+        // Precompute lowercase set for efficiency
+        Set<String> lowerOptions = new HashSet<>();
+        for (String opt : validOptions) {
+            lowerOptions.add(opt.toLowerCase());
+        }
+
         while (true) {
             System.out.print(prompt);
-            try {
-                String val = scanner.nextLine().trim().toLowerCase();
-                if (validOptions.stream().map(String::toLowerCase).toList().contains(val)) {
-                   return val;
-                }
-                throw new ArrayStoreException("Not within range of valid options");
-            } catch (Exception e) {
-                System.out.println("Invalid option. Please try again.");
+            String val = scanner.nextLine().trim().toLowerCase();
+            if (lowerOptions.contains(val)) {
+                return val;
             }
+            System.out.println("Invalid option. Valid options are: " + validOptions);
         }
     }
 
