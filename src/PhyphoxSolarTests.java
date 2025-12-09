@@ -11,7 +11,7 @@ public class PhyphoxSolarTests {
     void testRooftopEffectiveAreaSouth() {
         // Area 10, Shading 0.1, South (Factor 1.0)
         // Expected: 10 * (1 - 0.1) * 1.0 = 9.0
-        Rooftop roof = new Rooftop(10.0, 0.1, "south");
+        Rooftop roof = new Rooftop(10.0, 0.1, "s");
         assertEquals(9.0, roof.getEffectiveArea(), 0.001, "South facing calculation incorrect");
     }
 
@@ -19,7 +19,7 @@ public class PhyphoxSolarTests {
     void testRooftopEffectiveAreaNorth() {
         // Area 10, Shading 0, North (Factor 0.6)
         // Expected: 10 * 1.0 * 0.6 = 6.0
-        Rooftop roof = new Rooftop(10.0, 0.0, "north");
+        Rooftop roof = new Rooftop(10.0, 0.0, "n");
         assertEquals(6.0, roof.getEffectiveArea(), 0.001, "North facing calculation incorrect");
     }
 
