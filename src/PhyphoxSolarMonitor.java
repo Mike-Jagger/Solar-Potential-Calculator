@@ -35,7 +35,7 @@ public class PhyphoxSolarMonitor {
         System.out.println("\n--- Panel Configuration ---");
         String choice = getValidOption(
                 scanner,
-                "Choose panel type: 1=Polycrystalline, 2=Monocrystalline",
+                "Choose panel type: 1=Polycrystalline, 2=Monocrystalline: ",
                 List.of(new String[]{"1", "2"}));
         SolarPanel panel;
         if (choice.equals("1")) {
@@ -49,7 +49,7 @@ public class PhyphoxSolarMonitor {
         Calibration calibration = new Calibration();
         String calChoice = getValidOption(
                 scanner,
-                "Method: 1=Standard (Default), 2=Reference DNI",
+                "Method: 1=Standard (Default), 2=Reference DNI: ",
                 List.of(new String[]{"1", "2"}));
 
         if (calChoice.equals("2")) {
